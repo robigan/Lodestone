@@ -1,0 +1,8 @@
+name: Lodestone
+version: '${version}'
+main: com.robigan.lodestone.Lodestone
+api-version: 1.18
+authors: [ robigan ]
+description: Some plugin anon wanted me to compile for him
+depend:
+  - NBTAPI
