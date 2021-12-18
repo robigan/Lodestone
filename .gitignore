@@ -117,8 +117,8 @@ run/
 # Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
 !gradle-wrapper.jar
 
-# Server template, should be unique for each user
-server/.server/
+# Server template, should be unique for each user, and should ideally be a soft link such that a server for each project is not needed
+server/.server
 
 # Server cache, a copy of the .server dir
 server/.server_cache/
