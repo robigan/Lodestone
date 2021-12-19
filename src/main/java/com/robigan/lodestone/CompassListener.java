@@ -1,7 +1,14 @@
 package com.robigan.lodestone;
 
 import de.tr7zw.nbtapi.NBTCompound;
-import org.bukkit.*;
+import me.NoChance.PvPManager.PvPManager;
+import me.NoChance.PvPManager.PvPlayer;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.ChatColor;
+import org.bukkit.Bukkit;
+import org.bukkit.World;
+import org.bukkit.Location;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.EventHandler;
 import de.tr7zw.nbtapi.NBTItem;
@@ -13,37 +20,61 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.Listener;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Objects;
-
 public class CompassListener implements Listener {
+    private static final String chatPrefix = ChatColor.YELLOW + "[" + ChatColor.DARK_GRAY + "Lodestone" + ChatColor.YELLOW + "]" + ChatColor.RESET + " ";
+    private static final String pvpChatPrefix = ChatColor.YELLOW + "[" + ChatColor.DARK_GRAY + "PvPManager" + ChatColor.YELLOW + "]" + ChatColor.RESET + " ";
+    private boolean isPvP = false;
+
+    public CompassListener() {
+        final PvPManager pvpInstance = Lodestone.getPvpInstance();
+        if (pvpInstance != null) {
+            isPvP = true;
+        }
+    }
+
     @EventHandler(priority = EventPriority.LOWEST)
-    public void Compass(final @NotNull PlayerInteractEvent e) {
-        final Player p = e.getPlayer();
-        final ItemStack i = p.getInventory().getItemInMainHand();
-        if (e.getHand() == EquipmentSlot.HAND && i.getType() == Material.COMPASS && (e.getAction() == Action.RIGHT_CLICK_BLOCK || e.getAction() == Action.RIGHT_CLICK_AIR)) {
-            final NBTItem nbti = new NBTItem(i);
+    public void Compass(final @NotNull PlayerInteractEvent event) {
+        final Player player = event.getPlayer();
+        final ItemStack itemStack = player.getInventory().getItemInMainHand();
+
+        if (event.getHand() == EquipmentSlot.HAND && itemStack.getType() == Material.COMPASS && (event.getAction() == Action.RIGHT_CLICK_BLOCK || event.getAction() == Action.RIGHT_CLICK_AIR)) {
+            if (isPvP) {
+                @NotNull final PvPlayer pvPlayer = PvPlayer.get(player);
+
+                if (pvPlayer.isInCombat()) {
+                    player.sendMessage(pvpChatPrefix + ChatColor.RED + "Lodestone teleporting is not allowed while in combat!");
+                    event.setCancelled(true);
+                    return;
+                }
+            }
+
+            final NBTItem nbti = new NBTItem(itemStack);
+
             if (nbti.hasKey("LodestonePos")) {
-                p.sendMessage(ChatColor.BLUE + "Whoosh!");
                 final NBTCompound pos = nbti.getCompound("LodestonePos");
+
                 final NamespacedKey worldNamespace = NamespacedKey.fromString(nbti.getString("LodestoneDimension"));
-                if (Objects.isNull(worldNamespace)) {
-                    Bukkit.getLogger().warning("The field LodestoneDimension cannot be converted to a valid NamespacedKey (is null) in compass for player " + p.getName());
+                if (worldNamespace == null) {
+                    Bukkit.getLogger().warning("The field LodestoneDimension cannot be converted to a valid NamespacedKey (is null) in compass for player " + player.getName());
                     Bukkit.getLogger().warning("The LodestoneDimension value returned by NBTAPI is " + nbti.getString("LodestoneDimension"));
                     Bukkit.getLogger().warning("Lodestone teleport aborted due to error");
-                    p.sendMessage("There was an error processing the data in your Lodestone teleport");
+                    player.sendMessage(chatPrefix + ChatColor.RED + "There was an error processing the data in your Lodestone teleport");
                     return;
                 }
+
                 final World world = Bukkit.getServer().getWorld(worldNamespace);
-                if (Objects.isNull(world)) {
-                    Bukkit.getLogger().warning("The field LodestoneDimension is not an actual world (is null) in compass for player " + p.getName());
+                if (world == null) {
+                    Bukkit.getLogger().warning("The field LodestoneDimension is not an actual world (is null) in compass for player " + player.getName());
                     Bukkit.getLogger().warning("The LodestoneDimension value returned by NBTAPI is " + nbti.getString("LodestoneDimension"));
                     Bukkit.getLogger().warning("Lodestone teleport aborted due to error");
-                    p.sendMessage("There was an error processing the data in your Lodestone teleport");
+                    player.sendMessage(chatPrefix + ChatColor.RED + "There was an error processing the data in your Lodestone teleport");
                     return;
                 }
+
+                player.sendMessage(chatPrefix + ChatColor.BLUE + "Whoosh!");
                 final Location loc = new Location(world, pos.getInteger("X"), pos.getInteger("Y") + 2, pos.getInteger("Z"));
-                p.teleport(loc);
-                e.setCancelled(true);
+                player.teleport(loc);
+                event.setCancelled(true);
             }
         }
     }
