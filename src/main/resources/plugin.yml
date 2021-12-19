@@ -6,3 +6,5 @@ authors: [ robigan ]
 description: Some plugin anon wanted me to compile for him
 depend:
   - NBTAPI
+softdepend:
+  - PvPManager
